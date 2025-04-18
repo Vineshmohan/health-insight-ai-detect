@@ -32,7 +32,7 @@ const RiskSummary = ({ results }: RiskSummaryProps) => {
               <div key={disease.name} className="space-y-2">
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2">
-                    {getRiskLevel(disease.risk)}
+                    <span>{riskInfo.level}</span>
                     <span className="font-medium">{disease.name}</span>
                   </div>
                   <span className={`font-semibold ${riskInfo.color}`}>

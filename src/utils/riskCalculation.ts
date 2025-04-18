@@ -1,4 +1,6 @@
 
+import { ScreeningData, DiseaseRisk } from "@/types/health";
+
 interface RiskFactor {
   value: number;
   threshold: number;

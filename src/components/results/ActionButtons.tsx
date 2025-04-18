@@ -5,6 +5,14 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { DiseaseRisk } from "@/types/health";
 
+// Import the utility function to get risk level
+const getRiskLevel = (risk: number) => {
+  if (risk < 25) return { level: "Low", color: "text-green-600", bgColor: "bg-green-600" };
+  if (risk < 50) return { level: "Moderate", color: "text-yellow-600", bgColor: "bg-yellow-600" };
+  if (risk < 75) return { level: "High", color: "text-orange-600", bgColor: "bg-orange-600" };
+  return { level: "Very High", color: "text-red-600", bgColor: "bg-red-600" };
+};
+
 interface ActionButtonsProps {
   results: DiseaseRisk[];
 }
