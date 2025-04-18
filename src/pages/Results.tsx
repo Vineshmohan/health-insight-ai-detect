@@ -1,5 +1,4 @@
-
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -7,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Download, FileBarChart, Printer, Share2, AlertTriangle, CheckCircle, Info } from "lucide-react";
+import { toast } from "sonner";
 
-// Define interfaces for the screening data and results
 interface ScreeningData {
   age: number;
   gender: string;
@@ -34,13 +33,12 @@ const Results = () => {
   const [screeningData, setScreeningData] = useState<ScreeningData | null>(null);
   const [results, setResults] = useState<DiseaseRisk[]>([]);
   const [loading, setLoading] = useState(true);
+  const reportRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
-    // Retrieve screening data from session storage
     const storedData = sessionStorage.getItem('screeningData');
     
     if (!storedData) {
-      // If no data is found, navigate back to the screening page
       navigate("/screen");
       return;
     }
@@ -49,8 +47,6 @@ const Results = () => {
       const data = JSON.parse(storedData) as ScreeningData;
       setScreeningData(data);
       
-      // Generate mock results based on the input data
-      // In a real application, this would come from the Flask API
       generateMockResults(data);
       
       setLoading(false);
@@ -60,9 +56,7 @@ const Results = () => {
     }
   }, [navigate]);
   
-  // Mock function to generate results based on input
   const generateMockResults = (data: ScreeningData) => {
-    // Calculate diabetes risk - higher if glucose, BMI, family history are elevated
     const diabetesRisk = calculateRisk([
       { value: data.glucose, threshold: 120, weight: 0.35 },
       { value: data.insulin, threshold: 100, weight: 0.15 },
@@ -72,7 +66,6 @@ const Results = () => {
       { value: data.familyHistory ? 1 : 0, threshold: 0.5, weight: 0.2 }
     ]);
     
-    // Calculate heart disease risk - higher if blood pressure, smoker, age are elevated
     const heartRisk = calculateRisk([
       { value: data.bloodPressure, threshold: 140, weight: 0.3 },
       { value: data.bmi, threshold: 30, weight: 0.15 },
@@ -81,12 +74,11 @@ const Results = () => {
       { value: data.familyHistory ? 1 : 0, threshold: 0.5, weight: 0.1 }
     ]);
     
-    // Calculate obesity risk based primarily on BMI
     const obesityRisk = calculateRisk([
       { value: data.bmi, threshold: 30, weight: 0.6 },
       { value: data.skinThickness, threshold: 35, weight: 0.2 },
       { value: data.age, threshold: 40, weight: 0.05 },
-      { value: data.smoker ? 0 : 1, threshold: 0.5, weight: 0.05 }, // Non-smokers might have higher obesity risk
+      { value: data.smoker ? 0 : 1, threshold: 0.5, weight: 0.05 },
       { value: data.gender === "female" ? 1 : 0, threshold: 0.5, weight: 0.1 }
     ]);
     
@@ -130,21 +122,17 @@ const Results = () => {
     ]);
   };
   
-  // Helper function to calculate risk based on weighted factors
   const calculateRisk = (factors: { value: number, threshold: number, weight: number }[]) => {
     let riskScore = 0;
     
     factors.forEach(factor => {
-      // Calculate how much the value exceeds the threshold (normalized to 0-1)
       const factorRisk = Math.min(Math.max(factor.value / factor.threshold - 0.5, 0) * 2, 1);
       riskScore += factorRisk * factor.weight;
     });
     
-    // Normalize to percentage and add some randomness for demo purposes
     return Math.min(Math.max(Math.round(riskScore * 100) + Math.random() * 10 - 5, 5), 95);
   };
   
-  // Function to determine risk level classification
   const getRiskLevel = (risk: number) => {
     if (risk < 25) return { level: "Low", color: "text-green-600", bgColor: "bg-green-600" };
     if (risk < 50) return { level: "Moderate", color: "text-yellow-600", bgColor: "bg-yellow-600" };
@@ -152,12 +140,70 @@ const Results = () => {
     return { level: "Very High", color: "text-red-600", bgColor: "bg-red-600" };
   };
   
-  // Function to get the right icon for risk level
   const getRiskIcon = (risk: number) => {
     if (risk < 25) return <CheckCircle className="h-5 w-5 text-green-600" />;
     if (risk < 50) return <Info className="h-5 w-5 text-yellow-600" />;
     if (risk < 75) return <AlertTriangle className="h-5 w-5 text-orange-600" />;
     return <AlertTriangle className="h-5 w-5 text-red-600" />;
+  };
+  
+  const handlePrint = () => {
+    const isLoggedIn = localStorage.getItem("user") !== null;
+    
+    if (!isLoggedIn) {
+      toast.error("Please login to print your results");
+      return;
+    }
+    
+    window.print();
+    toast.success("Printing report...");
+  };
+  
+  const handleDownload = () => {
+    const isLoggedIn = localStorage.getItem("user") !== null;
+    
+    if (!isLoggedIn) {
+      toast.error("Please login to download your results");
+      return;
+    }
+    
+    const fileContent = results.map(disease => {
+      const riskInfo = getRiskLevel(disease.risk);
+      return `${disease.name}: ${riskInfo.level} Risk (${disease.risk}%)\n${disease.description}\n\nRecommendations:\n${disease.recommendations.join('\n')}\n\n`;
+    }).join('---\n\n');
+    
+    const blob = new Blob([`ChronoDetect Health Assessment\n\n${fileContent}`], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'ChronoDetect-Health-Report.txt';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast.success("Report downloaded successfully");
+  };
+  
+  const handleShare = () => {
+    const isLoggedIn = localStorage.getItem("user") !== null;
+    
+    if (!isLoggedIn) {
+      toast.error("Please login to share your results");
+      return;
+    }
+    
+    toast.success("Sharing options would appear here in a production app");
+  };
+  
+  const handleDetailedReport = () => {
+    const isLoggedIn = localStorage.getItem("user") !== null;
+    
+    if (!isLoggedIn) {
+      toast.error("Please login to view detailed reports");
+      return;
+    }
+    
+    toast.success("Detailed report would be generated in a production app");
   };
   
   if (loading) {
@@ -180,7 +226,7 @@ const Results = () => {
       <Navbar />
       
       <main className="flex-1 py-12 px-6 bg-muted">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto" ref={reportRef}>
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold mb-3">Your Health Risk Assessment</h1>
             <p className="text-muted-foreground max-w-2xl mx-auto">
@@ -189,7 +235,6 @@ const Results = () => {
             </p>
           </div>
           
-          {/* Summary Card */}
           <Card className="mb-8">
             <CardHeader>
               <CardTitle>Summary</CardTitle>
@@ -225,7 +270,6 @@ const Results = () => {
             </CardContent>
           </Card>
           
-          {/* Detailed Results */}
           <div className="space-y-6">
             <h2 className="text-2xl font-bold">Detailed Analysis</h2>
             
@@ -258,27 +302,41 @@ const Results = () => {
             })}
           </div>
           
-          {/* Actions */}
           <div className="mt-10 flex flex-col md:flex-row gap-4 justify-center">
-            <Button variant="outline" className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              className="flex items-center gap-2"
+              onClick={handlePrint}
+            >
               <Printer className="h-4 w-4" />
               <span>Print Results</span>
             </Button>
-            <Button variant="outline" className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              className="flex items-center gap-2"
+              onClick={handleDownload}
+            >
               <Download className="h-4 w-4" />
               <span>Download PDF</span>
             </Button>
-            <Button variant="outline" className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              className="flex items-center gap-2"
+              onClick={handleShare}
+            >
               <Share2 className="h-4 w-4" />
               <span>Share with Doctor</span>
             </Button>
-            <Button variant="outline" className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              className="flex items-center gap-2"
+              onClick={handleDetailedReport}
+            >
               <FileBarChart className="h-4 w-4" />
               <span>Detailed Report</span>
             </Button>
           </div>
           
-          {/* Disclaimer */}
           <div className="mt-10 bg-muted p-4 rounded-lg text-sm">
             <div className="flex items-start gap-3">
               <AlertTriangle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
@@ -294,7 +352,6 @@ const Results = () => {
             </div>
           </div>
           
-          {/* Return button */}
           <div className="mt-8 text-center">
             <Button onClick={() => navigate("/screen")} className="bg-primary hover:bg-primary/90">
               Take Assessment Again
