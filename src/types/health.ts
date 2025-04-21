@@ -1,5 +1,6 @@
 
 export interface ScreeningData {
+  name: string;  // Add name field
   age: number;
   gender: string;
   glucose: number;

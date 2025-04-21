@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -13,8 +12,8 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/use-toast";
 import { Info } from "lucide-react";
 
-// Define input interfaces
 interface ScreeningForm {
+  name: string;
   age: number;
   gender: string;
   glucose: number;
@@ -30,8 +29,8 @@ interface ScreeningForm {
 const Screen = () => {
   const navigate = useNavigate();
   
-  // Initial form state
   const [form, setForm] = useState<ScreeningForm>({
+    name: "",
     age: 35,
     gender: "female",
     glucose: 100,
@@ -44,7 +43,6 @@ const Screen = () => {
     familyHistory: false
   });
 
-  // Form update handler
   const updateForm = (field: keyof ScreeningForm, value: any) => {
     setForm((prev) => ({
       ...prev,
@@ -52,27 +50,18 @@ const Screen = () => {
     }));
   };
 
-  // Submit handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
-      // In a real application, this would call the Flask backend API
-      // For now, we'll simulate this with a mock API call
-      
-      // Show loading toast
       toast({
         title: "Analyzing data...",
         description: "Please wait while our AI processes your health information.",
         duration: 2000,
       });
       
-      // Simulate API call with setTimeout
       setTimeout(() => {
-        // Store form data in session storage to use on the results page
         sessionStorage.setItem('screeningData', JSON.stringify(form));
-        
-        // Navigate to results page
         navigate("/results");
       }, 2000);
       
@@ -108,11 +97,22 @@ const Screen = () => {
             
             <form onSubmit={handleSubmit}>
               <CardContent className="space-y-8">
-                {/* Basic Information */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-medium">Basic Information</h3>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Full Name</Label>
+                      <Input 
+                        id="name" 
+                        type="text" 
+                        value={form.name} 
+                        onChange={(e) => updateForm('name', e.target.value)}
+                        placeholder="Enter your full name"
+                        required
+                      />
+                    </div>
+                    
                     <div className="space-y-2">
                       <Label htmlFor="age">Age</Label>
                       <Input 
@@ -143,11 +143,6 @@ const Screen = () => {
                       </Select>
                     </div>
                   </div>
-                </div>
-                
-                {/* Health Metrics */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Health Metrics</h3>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
@@ -270,11 +265,6 @@ const Screen = () => {
                       </div>
                     </div>
                   </div>
-                </div>
-                
-                {/* Additional Factors */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Additional Risk Factors</h3>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="flex items-center justify-between">
@@ -301,16 +291,15 @@ const Screen = () => {
                       />
                     </div>
                   </div>
-                </div>
-                
-                {/* Disclaimer */}
-                <div className="bg-muted p-4 rounded-lg text-sm flex items-start gap-3">
-                  <Info className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                  <p className="text-muted-foreground">
-                    This tool is intended for informational purposes only and is not a substitute for professional medical advice, 
-                    diagnosis, or treatment. Always seek the advice of your physician or other qualified health provider with any 
-                    questions you may have regarding a medical condition.
-                  </p>
+                  
+                  <div className="bg-muted p-4 rounded-lg text-sm flex items-start gap-3">
+                    <Info className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                    <p className="text-muted-foreground">
+                      This tool is intended for informational purposes only and is not a substitute for professional medical advice, 
+                      diagnosis, or treatment. Always seek the advice of your physician or other qualified health provider with any 
+                      questions you may have regarding a medical condition.
+                    </p>
+                  </div>
                 </div>
               </CardContent>
               
